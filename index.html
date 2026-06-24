@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Snake — C++ WebAssembly</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0d0d1a;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+    header { text-align: center; margin-bottom: 20px; }
+    header h1 { font-size: 2rem; letter-spacing: 4px; color: #50dc64; text-transform: uppercase; }
+    header p { color: #888; font-size: 0.85rem; margin-top: 4px; letter-spacing: 1px; }
+    .difficulty-bar { display: flex; gap: 10px; margin-bottom: 16px; }
+    .diff-btn {
+      background: #1a1a2e; border: 2px solid #333; color: #aaa;
+      padding: 8px 22px; border-radius: 6px; cursor: pointer;
+      font-size: 0.85rem; letter-spacing: 1px; transition: all 0.15s;
+    }
+    .diff-btn:hover { border-color: #50dc64; color: #50dc64; }
+    .diff-btn.active { border-color: #50dc64; color: #50dc64; background: #1a2e1a; }
+    #canvas-wrapper { position: relative; border: 2px solid #2a2a4a; border-radius: 4px; box-shadow: 0 0 40px rgba(80,220,100,0.08); }
+    canvas { display: block; outline: none; }
+    #loading {
+      position: absolute; inset: 0; background: #0f0f1e;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; border-radius: 4px; z-index: 10;
+    }
+    #loading .spinner {
+      width: 40px; height: 40px; border: 3px solid #333;
+      border-top-color: #50dc64; border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading p { color: #666; font-size: 0.9rem; letter-spacing: 1px; }
+    .controls { margin-top: 18px; display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; }
+    .control-group { text-align: center; }
+    .control-group .label { font-size: 0.7rem; color: #555; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+    .keys { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
+    .key { background: #1a1a2e; border: 1px solid #333; border-bottom: 3px solid #222; border-radius: 5px; padding: 5px 10px; font-size: 0.75rem; color: #aaa; font-family: monospace; }
+    footer { margin-top: 28px; color: #333; font-size: 0.75rem; text-align: center; line-height: 1.8; }
+    footer a { color: #50dc64; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🐍 Snake</h1>
+    <p>Built in C++ · Compiled to WebAssembly</p>
+  </header>
+
+  <div class="difficulty-bar">
+    <button class="diff-btn" id="btn-easy"   onclick="setDifficulty('easy')">Easy</button>
+    <button class="diff-btn active" id="btn-medium" onclick="setDifficulty('medium')">Medium</button>
+    <button class="diff-btn" id="btn-hard"   onclick="setDifficulty('hard')">Hard</button>
+  </div>
+
+  <div id="canvas-wrapper">
+    <div id="loading">
+      <div class="spinner"></div>
+      <p>Loading WebAssembly...</p>
+    </div>
+    <canvas id="canvas" tabindex="0"></canvas>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <div class="label">Move</div>
+      <div class="keys"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></div>
+    </div>
+    <div class="control-group">
+      <div class="label">or</div>
+      <div class="keys"><span class="key">↑</span><span class="key">←</span><span class="key">↓</span><span class="key">→</span></div>
+    </div>
+    <div class="control-group">
+      <div class="label">Difficulty</div>
+      <div class="keys"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
+    </div>
+    <div class="control-group">
+      <div class="label">Restart</div>
+      <div class="keys"><span class="key">Enter</span></div>
+    </div>
+  </div>
+
+  <footer>
+    <p>C++ → WebAssembly via Emscripten · SDL2</p>
+  </footer>
+
+  <script>
+    var canvas = document.getElementById('canvas');
+    canvas.setAttribute('tabindex', '0');
+
+    // Click anywhere on the webpage automatically focuses the game canvas
+    document.addEventListener('click', function() { canvas.focus(); });
+
+    function setDifficulty(level) {
+      document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('btn-' + level).classList.add('active');
+      var key = { easy: '1', medium: '2', hard: '3' }[level];
+      
+      // We set bubbles: false here so this manual event 
+      // directly hits the canvas without triggering window listeners
+      canvas.dispatchEvent(new KeyboardEvent('keydown', {
+        key: key, keyCode: key.charCodeAt(0), which: key.charCodeAt(0), bubbles: false
+      }));
+    }
+
+    // Emscripten configuration block object
+    var Module = {
+      canvas: canvas,
+      doNotCaptureKeyboard: true,
+      onRuntimeInitialized: function() {
+        document.getElementById('loading').style.display = 'none';
+        canvas.focus();
+      },
+      print:    function(text) { console.log(text); },
+      printErr: function(text) { console.warn(text); }
+    };
+  </script>
+
+  <script src="snake.js"></script>
+</body>
+</html>
